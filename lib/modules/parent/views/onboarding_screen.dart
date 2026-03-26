@@ -5,38 +5,31 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:parent/routes/app_routes.dart';
 
+// ══════════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════════════════════════
+
 class _Constants {
-  // Animation Durations
   static const transitionDuration = Duration(milliseconds: 700);
   static const pageChangeDuration = Duration(milliseconds: 300);
   static const backgroundChangeDuration = Duration(milliseconds: 500);
   static const floatDuration = Duration(seconds: 3);
   static const particleDuration = Duration(seconds: 8);
 
-  // Animation Values
   static const double cardSlideOffset = 80.0;
   static const double cardInitialScale = 0.92;
 
-  // Icon
   static const double iconSize = 140.0;
-  static const double iconBorderRadius = 32.0;
-  static const double emojiFontSize = 70.0; // محسّن من 120
   static const double iconFloatRange = 8.0;
   static const double iconRotateRange = 0.03;
 
-  // Chip
-  static const double chipFloatRange = 6.0;
-  static const double chipBorderRadius = 20.0;
-
-  // Card
   static const double cardBorderRadius = 36.0;
   static const double handleWidth = 40.0;
   static const double handleHeight = 4.0;
   static const double buttonHeight = 56.0;
   static const double buttonBorderRadius = 16.0;
 
-  // Particles
-  static const int particleCount = 15; // محسّن من 20
+  static const int particleCount = 15;
   static const double particleOpacity = 0.07;
 }
 
@@ -79,12 +72,6 @@ class _Theme {
     fontSize: 13,
     fontWeight: FontWeight.w600,
   );
-
-  static const chipTextStyle = TextStyle(
-    fontFamily: 'Cairo',
-    fontSize: 12,
-    fontWeight: FontWeight.w700,
-  );
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -92,7 +79,7 @@ class _Theme {
 // ══════════════════════════════════════════════════════════════════
 
 class _PageModel {
-  final String imagePath; // مسار الصورة بدل الـ emoji
+  final String imagePath;
   final String title;
   final String subtitle;
   final String description;
@@ -125,17 +112,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   int _page = 0;
   final _pageCtrl = PageController();
 
-  // ── محسّن: 3 Controllers بدلاً من 5 ───────────────────────────
-  late AnimationController _transitionCtrl; // card transition
-  late AnimationController _floatCtrl; // floating elements
-  late AnimationController _particleCtrl; // particles
+  late AnimationController _transitionCtrl;
+  late AnimationController _floatCtrl;
+  late AnimationController _particleCtrl;
 
-  // ── Animations ─────────────────────────────────────────────────
   late Animation<double> _cardSlide;
   late Animation<double> _cardFade;
   late Animation<double> _cardScale;
 
-  // ── الصفحات ───────────────────────────────────────────────────
   static const _pages = [
     _PageModel(
       imagePath: 'assets/images/onboarding_1.png',
@@ -143,7 +127,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       subtitle: 'لحظة بلحظة',
       description:
           'احصل على تقارير مفصّلة عن درجات طفلك في جميع المواد، وراقب تطوره التعليمي بدقة عالية.',
-
       gradient: [Color(0xFF1565C0), Color(0xFF1E88E5)],
       chipColor: Color(0xFF1E88E5),
     ),
@@ -153,7 +136,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       subtitle: 'في كل وقت',
       description:
           'إشعارات فورية عند تسجيل غياب طفلك، مع سجل شهري تفصيلي لجميع أيام الدراسة.',
-
       gradient: [Color(0xFF0D47A1), Color(0xFF1976D2)],
       chipColor: Color(0xFF1976D2),
     ),
@@ -163,7 +145,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       subtitle: 'مع المدرسة',
       description:
           'راسل إدارة المدرسة مباشرة واستقبل تقارير يومية عن سلوك طفلك ومشاركته في الفصل.',
-
       gradient: [Color(0xFF1976D2), Color(0xFF2196F3)],
       chipColor: Color(0xFF2196F3),
     ),
@@ -187,7 +168,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _initAnimations() {
-    // ── Card Transition (محسّن: دمج slide + fade + scale) ───────
     _transitionCtrl = AnimationController(
       vsync: this,
       duration: _Constants.transitionDuration,
@@ -208,13 +188,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       CurvedAnimation(parent: _transitionCtrl, curve: Curves.easeOutQuart),
     );
 
-    // ── Floating Elements ──────────────────────────────────────
     _floatCtrl = AnimationController(
       vsync: this,
       duration: _Constants.floatDuration,
     )..repeat(reverse: true);
 
-    // ── Particles ──────────────────────────────────────────────
     _particleCtrl = AnimationController(
       vsync: this,
       duration: _Constants.particleDuration,
@@ -230,10 +208,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.dispose();
   }
 
-  // ── Navigation (محسّن: مع Haptic feedback) ────────────────────
   void _next() {
-    HapticFeedback.lightImpact(); // ✅ جديد
-
+    HapticFeedback.lightImpact();
     if (_page < _pages.length - 1) {
       _transitionCtrl.reverse().then((_) {
         _pageCtrl.nextPage(
@@ -247,7 +223,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _skip() {
-    HapticFeedback.mediumImpact(); // ✅ جديد
+    HapticFeedback.mediumImpact();
     _finishOnboarding();
   }
 
@@ -259,14 +235,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void _onPageChanged(int p) {
     setState(() => _page = p);
     _transitionCtrl.forward(from: 0);
-    HapticFeedback.selectionClick(); // ✅ جديد
+    HapticFeedback.selectionClick();
   }
 
-  // ── Jump to page (✅ جديد: للنقاط التفاعلية) ────────────────
   void _jumpToPage(int index) {
     if (index == _page) return;
     HapticFeedback.lightImpact();
-
     _transitionCtrl.reverse().then((_) {
       _pageCtrl.animateToPage(
         index,
@@ -280,94 +254,102 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final page = _pages[_page];
+    final isLast = _page == _pages.length - 1;
 
-    return Scaffold(
-      body: GestureDetector(
-        // ✅ جديد: Swipe Support
-        onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity! < -500 && _page < _pages.length - 1) {
-            _next();
-          } else if (details.primaryVelocity! > 500 && _page > 0) {
-            _transitionCtrl.reverse().then((_) {
-              _pageCtrl.previousPage(
-                duration: _Constants.pageChangeDuration,
-                curve: Curves.easeInOut,
-              );
-            });
-          }
-        },
-        child: AnimatedContainer(
-          duration: _Constants.backgroundChangeDuration,
-          curve: Curves.easeInOut,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: page.gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    // ✅ Directionality RTL يغطي كامل الشاشة
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        body: GestureDetector(
+          onHorizontalDragEnd: (details) {
+            // ✅ RTL: سحب يمين = التالي، سحب يسار = السابق
+            if (details.primaryVelocity! > 500 && _page < _pages.length - 1) {
+              _next();
+            } else if (details.primaryVelocity! < -500 && _page > 0) {
+              _transitionCtrl.reverse().then((_) {
+                _pageCtrl.previousPage(
+                  duration: _Constants.pageChangeDuration,
+                  curve: Curves.easeInOut,
+                );
+              });
+            }
+          },
+          child: AnimatedContainer(
+            duration: _Constants.backgroundChangeDuration,
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: page.gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-          ),
-          child: Stack(
-            children: [
-              // ── Particles (محسّن: مع RepaintBoundary) ──────────
-              Positioned.fill(
-                child: RepaintBoundary(
-                  child: AnimatedBuilder(
-                    animation: _particleCtrl,
-                    builder: (_, __) => CustomPaint(
-                      painter: _ParticlePainter(_particleCtrl.value),
-                    ),
-                  ),
-                ),
-              ),
-
-              // ── Decorative Circles ─────────────────────────────
-              _buildDecorativeCircles(size),
-
-              // ── Skip Button ────────────────────────────────────
-              _buildSkipButton(context),
-
-              // ── Main Content ───────────────────────────────────
-              Positioned.fill(
-                child: PageView.builder(
-                  controller: _pageCtrl,
-                  onPageChanged: _onPageChanged,
-                  itemCount: _pages.length,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (_, i) => _buildPageContent(_pages[i], size),
-                ),
-              ),
-
-              // ── Bottom Card ────────────────────────────────────
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: AnimatedBuilder(
-                  animation: _transitionCtrl,
-                  builder: (_, __) => Transform.translate(
-                    offset: Offset(0, _cardSlide.value),
-                    child: FadeTransition(
-                      opacity: _cardFade,
-                      child: ScaleTransition(
-                        scale: _cardScale,
-                        alignment: Alignment.bottomCenter,
-                        child: _buildCard(page, size, context),
+            child: Stack(
+              children: [
+                // ── Particles ──────────────────────────────────
+                Positioned.fill(
+                  child: RepaintBoundary(
+                    child: AnimatedBuilder(
+                      animation: _particleCtrl,
+                      builder: (_, __) => CustomPaint(
+                        painter: _ParticlePainter(_particleCtrl.value),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+
+                // ── Decorative Circles ──────────────────────────
+                _buildDecorativeCircles(size),
+
+                // ── الصورة ──────────────────────────────────────
+                Positioned.fill(
+                  child: PageView.builder(
+                    controller: _pageCtrl,
+                    onPageChanged: _onPageChanged,
+                    itemCount: _pages.length,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (_, i) => _buildPageContent(_pages[i], size),
+                  ),
+                ),
+
+                // ── البطاقة السفلية ──────────────────────────────
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: AnimatedBuilder(
+                    animation: _transitionCtrl,
+                    builder: (_, __) => Transform.translate(
+                      offset: Offset(0, _cardSlide.value),
+                      child: FadeTransition(
+                        opacity: _cardFade,
+                        child: ScaleTransition(
+                          scale: _cardScale,
+                          alignment: Alignment.bottomCenter,
+                          child: _buildCard(page, size, context),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ✅ زر التخطي — يظهر فقط في الصفحات غير الأخيرة
+                if (!isLast) _buildSkipButton(context),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // ── Skip Button (محسّن: مع Semantics) ──────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  زر التخطي — مُصلح مع نص
+  // ══════════════════════════════════════════════════════════════════
   Widget _buildSkipButton(BuildContext context) {
     return Positioned(
       top: MediaQuery.of(context).padding.top + 12,
+      // في Directionality RTL، left = الجانب الأيسر المرئي
       left: 20,
       child: Semantics(
         label: 'تخطي مقدمة التطبيق',
@@ -380,13 +362,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withOpacity(0.18),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withOpacity(0.35),
                   width: 1,
                 ),
               ),
+              // ✅ النص كان مفقوداً في الكود الأصلي
+              child: const Text('تخطي', style: _Theme.skipButtonStyle),
             ),
           ),
         ),
@@ -394,7 +378,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  // ── Decorative Circles ─────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  الدوائر الزخرفية
+  // ══════════════════════════════════════════════════════════════════
   Widget _buildDecorativeCircles(Size size) {
     return Stack(
       children: [
@@ -438,15 +424,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  // ── Page Content (محسّن: مع Semantics) ─────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  محتوى الصفحة — الصورة مع إطار Glassmorphism
+  // ══════════════════════════════════════════════════════════════════
   Widget _buildPageContent(_PageModel page, Size size) {
+    final imgSize = _Constants.iconSize * 1.6;
+
     return Column(
       children: [
-        SizedBox(height: size.height * 0.10),
+        SizedBox(height: size.height * 0.09),
 
-        // ── Icon (محسّن: حجم أصغر + Semantics) ───────────────
         Semantics(
-          label: '${page.title} - رمز توضيحي',
+          label: '${page.title} - صورة توضيحية',
           image: true,
           child: AnimatedBuilder(
             animation: _floatCtrl,
@@ -462,17 +451,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 offset: Offset(0, floatOffset),
                 child: Transform.rotate(
                   angle: rotateAngle,
-                  child: Image.asset(
-                    page.imagePath,
-                    width: _Constants.iconSize * 1.6,
-                    height: _Constants.iconSize * 1.6,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.image_outlined,
-                      color: Colors.white54,
-                      size: 80,
-                    ),
-                  ),
+                  child: _buildImageFrame(page, imgSize),
                 ),
               );
             },
@@ -482,7 +461,103 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  // ── Bottom Card (محسّن: مع Semantics) ──────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  //  إطار الصورة — Glassmorphism احترافي
+  // ══════════════════════════════════════════════════════════════════
+  Widget _buildImageFrame(_PageModel page, double imgSize) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // ── الحلقة الضوئية الخارجية ────────────────────────────────
+        Container(
+          width: imgSize + 36,
+          height: imgSize + 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                Colors.white.withOpacity(0.18),
+                Colors.white.withOpacity(0.04),
+              ],
+            ),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.25),
+              width: 1.5,
+            ),
+          ),
+        ),
+
+        // ── الإطار الزجاجي الرئيسي ────────────────────────────────
+        Container(
+          width: imgSize + 16,
+          height: imgSize + 16,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            color: Colors.white.withOpacity(0.15),
+            border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.white.withOpacity(0.1),
+                blurRadius: 10,
+                spreadRadius: -2,
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+                spreadRadius: -4,
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Image.asset(
+              page.imagePath,
+              width: imgSize,
+              height: imgSize,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.white.withOpacity(0.1),
+                child: const Center(
+                  child: Icon(
+                    Icons.image_outlined,
+                    color: Colors.white54,
+                    size: 64,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // ── بريق أعلى اليمين ──────────────────────────────────────
+        Positioned(
+          top: 14,
+          right: 16,
+          child: Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.75),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.5),
+                  blurRadius: 6,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  البطاقة السفلية — RTL مُصلح بالكامل
+  // ══════════════════════════════════════════════════════════════════
   Widget _buildCard(_PageModel page, Size size, BuildContext context) {
     final isLast = _page == _pages.length - 1;
     final bottom = MediaQuery.of(context).padding.bottom;
@@ -507,9 +582,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         padding: EdgeInsets.fromLTRB(28, 28, 28, bottom + 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
+          // ✅ crossAxisAlignment.start = اليمين في RTL
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Handle ─────────────────────────────────────────
+            // ── Handle ────────────────────────────────────────────
             Center(
               child: Container(
                 width: _Constants.handleWidth,
@@ -522,15 +598,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
             const SizedBox(height: 22),
 
-            // ── Page Dots (✅ محسّن: تفاعلية) ──────────────────
+            // ── نقاط التنقل ────────────────────────────────────────
             Semantics(
               label: 'مؤشر الصفحة: ${_page + 1} من ${_pages.length}',
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                // ✅ start = يمين في RTL
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: List.generate(_pages.length, (i) {
                   final isActive = i == _page;
                   return GestureDetector(
-                    onTap: () => _jumpToPage(i), // ✅ جديد: clickable
+                    onTap: () => _jumpToPage(i),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 350),
                       curve: Curves.easeInOutCubic,
@@ -550,12 +627,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
             const SizedBox(height: 18),
 
-            // ── Title (محسّن: مع Semantics) ────────────────────
+            // ── العنوان ────────────────────────────────────────────
             Semantics(
               header: true,
               label: '${page.title} ${page.subtitle}',
               child: RichText(
                 textAlign: TextAlign.right,
+                textDirection: TextDirection.rtl,
                 text: TextSpan(
                   children: [
                     TextSpan(text: '${page.title}\n', style: _Theme.titleStyle),
@@ -569,7 +647,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
             const SizedBox(height: 12),
 
-            // ── Description (محسّن: مع Semantics) ──────────────
+            // ── الوصف ──────────────────────────────────────────────
             Semantics(
               label: page.description,
               child: Text(
@@ -580,7 +658,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
             const SizedBox(height: 24),
 
-            // ── Action Button (محسّن: مع Semantics) ────────────
+            // ── زر التالي / ابدأ الآن ──────────────────────────────
             Semantics(
               button: true,
               label: isLast
@@ -632,7 +710,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  PARTICLE PAINTER (محسّن للأداء)
+//  PARTICLE PAINTER
 // ══════════════════════════════════════════════════════════════════
 
 class _ParticlePainter extends CustomPainter {
@@ -644,7 +722,6 @@ class _ParticlePainter extends CustomPainter {
   static List<_Particle> _generateParticles() {
     final rng = math.Random(99);
     final particles = <_Particle>[];
-
     for (int i = 0; i < _Constants.particleCount; i++) {
       particles.add(
         _Particle(
@@ -655,7 +732,6 @@ class _ParticlePainter extends CustomPainter {
         ),
       );
     }
-
     return particles;
   }
 
@@ -670,7 +746,6 @@ class _ParticlePainter extends CustomPainter {
       final y =
           particle.baseY -
           ((progress * particle.speed * 80) % (size.height * 0.65 + 20));
-
       canvas.drawCircle(Offset(x, y), particle.radius, paint);
     }
   }
