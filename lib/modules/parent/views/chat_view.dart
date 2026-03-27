@@ -6,6 +6,7 @@ import '../models/admin_model.dart';
 import '../models/message_model.dart';
 import '../services/parent_supabase_service.dart';
 import '../widgets/message_bubble.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Modern Chat View - Beautiful Message Bubbles
 ///
@@ -25,12 +26,29 @@ class _ChatViewState extends State<ChatView> {
   late AdminModel admin;
   List<MessageModel> messages = [];
   bool isLoading = true;
+  RealtimeChannel? _incomingChannel;
+  RealtimeChannel? _outgoingChannel;
+  int? _parentId;
 
   @override
   void initState() {
     super.initState();
     admin = Get.arguments as AdminModel;
-    loadMessages();
+    _initChat();
+  }
+
+  Future<void> _initChat() async {
+    await loadMessages();
+    _parentId = await _supabaseService.getCurrentParentId();
+    if (_parentId != null) {
+      _subscribeRealtime();
+      // Best effort only: avoid crashing UI if RLS/JWT claims are not ready.
+      try {
+        await _supabaseService.markConversationAsRead(adminId: admin.id);
+      } catch (e) {
+        print('⚠️ markConversationAsRead failed on init: $e');
+      }
+    }
   }
 
   Future<void> loadMessages() async {
@@ -54,8 +72,93 @@ class _ChatViewState extends State<ChatView> {
     _scrollToBottom();
   }
 
+  void _subscribeRealtime() {
+    final parentId = _parentId;
+    if (parentId == null) return;
+
+    final client = Supabase.instance.client;
+
+    // Incoming messages (Admin -> Parent). Filter by recipient_parent_id.
+    _incomingChannel = client
+        .channel('messages_incoming_parent_$parentId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'recipient_parent_id',
+            value: '$parentId',
+          ),
+          callback: (payload) async {
+            final newRow = payload.newRecord;
+            // Ensure it's from this admin
+            final senderAdminId = newRow['sender_admin_id'];
+            final senderId = senderAdminId is int
+                ? senderAdminId
+                : int.tryParse(senderAdminId?.toString() ?? '');
+            if (senderId != admin.id) return;
+
+            final m = MessageModel.fromJson(newRow);
+            setState(() {
+              // Avoid duplicates by id
+              if (messages.any((x) => x.id == m.id)) return;
+              messages.add(m);
+              messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+            });
+            _scrollToBottom();
+            try {
+              await _supabaseService.markConversationAsRead(adminId: admin.id);
+            } catch (e) {
+              print('⚠️ markConversationAsRead failed in callback: $e');
+            }
+          },
+        )
+        .subscribe();
+
+    // Outgoing messages (Parent -> Admin). Filter by sender_parent_id.
+    _outgoingChannel = client
+        .channel('messages_outgoing_parent_$parentId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'sender_parent_id',
+            value: '$parentId',
+          ),
+          callback: (payload) {
+            final newRow = payload.newRecord;
+            final recipientAdminId = newRow['recipient_admin_id'];
+            final rid = recipientAdminId is int
+                ? recipientAdminId
+                : int.tryParse(recipientAdminId?.toString() ?? '');
+            if (rid != admin.id) return;
+
+            final m = MessageModel.fromJson(newRow);
+            setState(() {
+              if (messages.any((x) => x.id == m.id)) return;
+              messages.add(m);
+              messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+            });
+            _scrollToBottom();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _incomingChannel?.unsubscribe();
+    _outgoingChannel?.unsubscribe();
+    messageController.dispose();
+    scrollController.dispose();
+    super.dispose();
+  }
+
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scrollController.hasClients) {
         scrollController.animateTo(
           scrollController.position.maxScrollExtent,
@@ -126,6 +229,26 @@ class _ChatViewState extends State<ChatView> {
         ),
         title: Row(
           children: [
+            // Container(
+            //   width: 40,
+            //   height: 40,
+            //   decoration: BoxDecoration(
+            //     gradient: LinearGradient(
+            //       colors: [_getAdminColor(), _getAdminColor().withOpacity(0.7)],
+            //     ),
+            //     borderRadius: BorderRadius.circular(12),
+            //   ),
+            //   child: Center(
+            //     child: Text(
+            //       admin.name.split(' ').map((n) => n[0]).take(2).join(),
+            //       style: const TextStyle(
+            //         fontSize: 14,
+            //         fontWeight: FontWeight.bold,
+            //         color: Colors.white,
+            //       ),
+            //     ),
+            //   ),
+            // ),
             Container(
               width: 40,
               height: 40,
@@ -135,15 +258,9 @@ class _ChatViewState extends State<ChatView> {
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Center(
-                child: Text(
-                  admin.name.split(' ').map((n) => n[0]).take(2).join(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
               ),
             ),
             const SizedBox(width: 12),
@@ -178,13 +295,10 @@ class _ChatViewState extends State<ChatView> {
                 ? const Center(child: CircularProgressIndicator())
                 : ListView.builder(
                     controller: scrollController,
-                    reverse: true, // عرض الرسائل من الأسفل (كـ WhatsApp)
                     padding: const EdgeInsets.all(16),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      // عكس index لعرض الرسائل بالترتيب الصحيح
-                      final messageIndex = messages.length - 1 - index;
-                      final message = messages[messageIndex];
+                      final message = messages[index];
                       return MessageBubble(
                         message: message,
                         teacherColor: _getAdminColor(),

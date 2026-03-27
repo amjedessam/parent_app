@@ -515,6 +515,18 @@ class ParentSupabaseService extends GetxService {
     }
   }
 
+  /// تعليم رسائل محادثة (Admin -> Parent) كمقروءة
+  Future<void> markConversationAsRead({required int adminId}) async {
+    final parentId = await _getParentIdSafe();
+    if (parentId == null) return;
+    await _supabase
+        .from('messages')
+        .update({'is_read': true, 'read_at': DateTime.now().toUtc().toIso8601String()})
+        .eq('sender_admin_id', adminId)
+        .eq('recipient_parent_id', parentId)
+        .eq('is_read', false);
+  }
+
   /// تحميل قائمة الإداريين المتاحين للتواصل
   Future<List<Map<String, dynamic>>> loadAdmins() async {
     try {

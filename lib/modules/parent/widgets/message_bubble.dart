@@ -39,11 +39,15 @@ class MessageBubble extends StatelessWidget {
                 border: Border.all(color: AppColors.primaryBorder),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                Icons.admin_panel_settings_rounded,
-                color: AppColors.primary,
-                size: 18,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
               ),
+              // Icon(
+              //   Icons.admin_panel_settings_rounded,
+              //   color: AppColors.primary,
+              //   size: 18,
+              // ),
             ),
             const SizedBox(width: 8),
           ],

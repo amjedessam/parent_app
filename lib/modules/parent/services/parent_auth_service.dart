@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:parent/core/services/push_notifications_service.dart';
 import 'package:parent/modules/parent/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -228,6 +229,12 @@ class ParentAuthService extends GetxService {
           print(
             '✅ Sync success: id=${appEntityId.value}, type=${userType.value}',
           );
+
+          // Register/update current device FCM token after auth sync is ready.
+          if (Get.isRegistered<PushNotificationsService>()) {
+            await Get.find<PushNotificationsService>()
+                .registerCurrentDeviceToken();
+          }
           return true;
         }
 

@@ -39,6 +39,36 @@ class AdminCard extends StatelessWidget {
             child: Row(
               children: [
                 // ── Avatar ─────────────────────────────────
+                // Container(
+                //   width: 60,
+                //   height: 60,
+                //   decoration: const BoxDecoration(
+                //     gradient: LinearGradient(
+                //       begin: Alignment.topLeft,
+                //       end: Alignment.bottomRight,
+                //       colors: [AppColors.primary, AppColors.primaryDark],
+                //     ),
+                //     borderRadius: BorderRadius.all(Radius.circular(16)),
+                //   ),
+                //   child: Center(
+                //     child: Text(
+                //       admin.name
+                //           .split(' ')
+                //           .map((n) => n[0])
+                //           .take(2)
+                //           .join()
+                //           .toUpperCase(),
+                //       style: const TextStyle(
+                //         fontFamily: 'Cairo',
+                //         fontSize: 22,
+                //         fontWeight: FontWeight.w800,
+                //         color: Colors.white,
+                //         height: 1,
+                //       ),
+                //     ),
+                //   ),
+                // ),
+                // ── Avatar ─────────────────────────────────
                 Container(
                   width: 60,
                   height: 60,
@@ -50,21 +80,11 @@ class AdminCard extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.all(Radius.circular(16)),
                   ),
-                  child: Center(
-                    child: Text(
-                      admin.name
-                          .split(' ')
-                          .map((n) => n[0])
-                          .take(2)
-                          .join()
-                          .toUpperCase(),
-                      style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1,
-                      ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),

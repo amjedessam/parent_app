@@ -16,6 +16,7 @@ import 'package:parent/modules/parent/services/parent_auth_service.dart';
 import 'package:parent/modules/parent/controllers/auth_controller.dart';
 import 'package:parent/routes/app_routes.dart';
 import 'package:parent/config/supabase_config.dart';
+import 'package:parent/core/services/push_notifications_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +50,11 @@ void _initParentServices() {
 
   // ③ يعتمد على SupabaseService و ParentSupabaseService
   Get.put<ParentAuthService>(ParentAuthService(), permanent: true);
+
+  // ④ Push Notifications (Firebase + token registration)
+  Get.put<PushNotificationsService>(PushNotificationsService(), permanent: true);
+  // Fire-and-forget init (mobile only internally)
+  Get.find<PushNotificationsService>().init();
 
   // ④ يحتاج للـ Services السابقة - مهم للتحقق من حالة الدخول عند البداية
   Get.put<AuthController>(AuthController(), permanent: true);

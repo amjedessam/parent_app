@@ -130,24 +130,24 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
       print('   Seen onboarding: $hasSeenOnboarding');
 
       if (session != null && !session.isExpired) {
-        if (savedEntityId != null && savedEntityId != 0) {
-          print('🔄 Restoring auth data...');
-          final authService = Get.find<ParentAuthService>();
-          authService.appEntityId.value = savedEntityId;
-          authService.userType.value = savedUserType ?? '';
-          print('✅ Auto-login success: entityId=$savedEntityId');
-          print('🚀 Navigating to MAIN_NAVIGATION...');
+        // Always perform startup sync to ensure JWT claims are fresh
+        // (prevents intermittent RLS errors like integer: "").
+        final authService = Get.find<ParentAuthService>();
+        final syncResult = await authService.syncAppUserOnStartup();
+        if (syncResult) {
+          print('✅ Startup sync successful, navigating to MAIN_NAVIGATION');
           Get.offAllNamed(AppRoutes.PARENT_MAIN_NAVIGATION);
           return;
-        } else {
-          print('🔄 Session exists but no saved data - attempting sync...');
-          final authService = Get.find<ParentAuthService>();
-          final syncResult = await authService.syncAppUserOnStartup();
-          if (syncResult) {
-            print('✅ Sync successful, navigating to MAIN_NAVIGATION');
-            Get.offAllNamed(AppRoutes.PARENT_MAIN_NAVIGATION);
-            return;
-          }
+        }
+
+        // Fallback to stored values only if sync fails
+        if (savedEntityId != null && savedEntityId != 0) {
+          print('⚠️ Sync failed, fallback to stored auth data');
+          authService.appEntityId.value = savedEntityId;
+          authService.userType.value = savedUserType ?? '';
+          print('🚀 Navigating to MAIN_NAVIGATION (fallback)...');
+          Get.offAllNamed(AppRoutes.PARENT_MAIN_NAVIGATION);
+          return;
         }
       }
 
