@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:parent/modules/parent/controllers/navigation_controller.dart';
@@ -115,16 +116,22 @@ class PushNotificationsService extends GetxService {
   }
 
   void _openCommunicationScreen() {
-    if (Get.currentRoute == AppRoutes.PARENT_COMMUNICATION) return;
-
-    // Navigate to main navigation first if not there
-    if (Get.currentRoute != AppRoutes.PARENT_MAIN_NAVIGATION) {
-      Get.offAllNamed(AppRoutes.PARENT_MAIN_NAVIGATION);
+    void switchTab() {
+      if (Get.isRegistered<NavigationController>()) {
+        Get.find<NavigationController>().switchTab(2);
+      }
     }
 
-    // Switch to communication tab (index 2) using NavigationController
-    final navController = Get.find<NavigationController>();
-    navController.switchTab(2);
+    // Stacked /legacy route: replace with main shell so bottom nav is visible.
+    final onMain = Get.currentRoute == AppRoutes.PARENT_MAIN_NAVIGATION;
+    if (!onMain) {
+      Get.offAllNamed(AppRoutes.PARENT_MAIN_NAVIGATION);
+      // New [NavigationController] is created in [MainNavigationView] next frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) => switchTab());
+      return;
+    }
+
+    switchTab();
   }
 
   Future<void> _registerToken() async {
