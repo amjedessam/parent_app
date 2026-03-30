@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:parent/theme/app_theme.dart';
+import 'package:parent/core/services/push_notifications_service.dart';
 import 'package:parent/theme/parent_app_colors.dart';
 import '../models/admin_model.dart';
 import '../models/message_model.dart';
@@ -29,11 +31,13 @@ class _ChatViewState extends State<ChatView> {
   RealtimeChannel? _incomingChannel;
   RealtimeChannel? _outgoingChannel;
   int? _parentId;
+  Timer? _silentPollTimer;
 
   @override
   void initState() {
     super.initState();
     admin = Get.arguments as AdminModel;
+    PushNotificationsService.suppressForegroundMessageNotifications = true;
     _initChat();
   }
 
@@ -42,6 +46,7 @@ class _ChatViewState extends State<ChatView> {
     _parentId = await _supabaseService.getCurrentParentId();
     if (_parentId != null) {
       _subscribeRealtime();
+      _startSilentPolling();
       // Best effort only: avoid crashing UI if RLS/JWT claims are not ready.
       try {
         await _supabaseService.markConversationAsRead(adminId: admin.id);
@@ -49,6 +54,41 @@ class _ChatViewState extends State<ChatView> {
         print('⚠️ markConversationAsRead failed on init: $e');
       }
     }
+  }
+
+  /// احتياط إذا تعثّر Realtime (فلترة، نشر، إلخ) — تحديث خفيف بدون إعادة تحميل كاملة.
+  void _startSilentPolling() {
+    _silentPollTimer?.cancel();
+    _silentPollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _silentRefreshMessages();
+    });
+  }
+
+  Future<void> _silentRefreshMessages() async {
+    if (!mounted) return;
+    try {
+      final messagesData = await _supabaseService.loadMessages(adminId: admin.id);
+      final list = messagesData
+          .map((json) => MessageModel.fromJson(json))
+          .toList()
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      if (!mounted) return;
+      if (!_messagesListsDiffer(messages, list)) return;
+      setState(() {
+        messages = list;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      debugPrint('⚠️ silent refresh: $e');
+    }
+  }
+
+  bool _messagesListsDiffer(List<MessageModel> a, List<MessageModel> b) {
+    if (a.length != b.length) return true;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id || a[i].content != b[i].content) return true;
+    }
+    return false;
   }
 
   Future<void> loadMessages() async {
@@ -78,9 +118,9 @@ class _ChatViewState extends State<ChatView> {
 
     final client = Supabase.instance.client;
 
-    // Incoming messages (Admin -> Parent). Filter by recipient_parent_id.
+    // Incoming messages (Admin -> Parent). يجب أن يطابق عمود int في Postgres (لا نمرّر نصًا).
     _incomingChannel = client
-        .channel('messages_incoming_parent_$parentId')
+        .channel('messages_incoming_parent_${parentId}_${admin.id}')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
@@ -88,11 +128,10 @@ class _ChatViewState extends State<ChatView> {
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
             column: 'recipient_parent_id',
-            value: '$parentId',
+            value: parentId,
           ),
           callback: (payload) async {
-            final newRow = payload.newRecord;
-            // Ensure it's from this admin
+            final newRow = Map<String, dynamic>.from(payload.newRecord);
             final senderAdminId = newRow['sender_admin_id'];
             final senderId = senderAdminId is int
                 ? senderAdminId
@@ -100,8 +139,8 @@ class _ChatViewState extends State<ChatView> {
             if (senderId != admin.id) return;
 
             final m = MessageModel.fromJson(newRow);
+            if (!mounted) return;
             setState(() {
-              // Avoid duplicates by id
               if (messages.any((x) => x.id == m.id)) return;
               messages.add(m);
               messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -114,11 +153,13 @@ class _ChatViewState extends State<ChatView> {
             }
           },
         )
-        .subscribe();
+        .subscribe((status, [err]) {
+          debugPrint('📡 realtime incoming: $status ${err ?? ''}');
+        });
 
-    // Outgoing messages (Parent -> Admin). Filter by sender_parent_id.
+    // Outgoing messages (Parent -> Admin).
     _outgoingChannel = client
-        .channel('messages_outgoing_parent_$parentId')
+        .channel('messages_outgoing_parent_${parentId}_${admin.id}')
         .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
@@ -126,10 +167,10 @@ class _ChatViewState extends State<ChatView> {
           filter: PostgresChangeFilter(
             type: PostgresChangeFilterType.eq,
             column: 'sender_parent_id',
-            value: '$parentId',
+            value: parentId,
           ),
           callback: (payload) {
-            final newRow = payload.newRecord;
+            final newRow = Map<String, dynamic>.from(payload.newRecord);
             final recipientAdminId = newRow['recipient_admin_id'];
             final rid = recipientAdminId is int
                 ? recipientAdminId
@@ -137,6 +178,7 @@ class _ChatViewState extends State<ChatView> {
             if (rid != admin.id) return;
 
             final m = MessageModel.fromJson(newRow);
+            if (!mounted) return;
             setState(() {
               if (messages.any((x) => x.id == m.id)) return;
               messages.add(m);
@@ -145,11 +187,15 @@ class _ChatViewState extends State<ChatView> {
             _scrollToBottom();
           },
         )
-        .subscribe();
+        .subscribe((status, [err]) {
+          debugPrint('📡 realtime outgoing: $status ${err ?? ''}');
+        });
   }
 
   @override
   void dispose() {
+    PushNotificationsService.suppressForegroundMessageNotifications = false;
+    _silentPollTimer?.cancel();
     _incomingChannel?.unsubscribe();
     _outgoingChannel?.unsubscribe();
     messageController.dispose();

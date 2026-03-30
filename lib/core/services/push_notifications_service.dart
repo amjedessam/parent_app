@@ -19,6 +19,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class PushNotificationsService extends GetxService {
+  /// يضبطه [ChatView]: عند `true` لا نُظهر إشعارًا محليًا أثناء وجود المستخدم في المحادثة.
+  static bool suppressForegroundMessageNotifications = false;
+
   final SupabaseService _supabase = Get.find<SupabaseService>();
   final ParentAuthService _auth = Get.find<ParentAuthService>();
 
@@ -48,6 +51,9 @@ class PushNotificationsService extends GetxService {
     });
 
     FirebaseMessaging.onMessage.listen((message) async {
+      if (suppressForegroundMessageNotifications) {
+        return;
+      }
       final n = message.notification;
       final title = n?.title ?? 'إشعار جديد';
       final body = n?.body ?? '';

@@ -1,0 +1,2 @@
+# يُستدعى من قاعدة البيانات (Webhook / pg_net / Cron) بعرض service_role — ليس من تطبيق المعلم.
+verify_jwt = false
